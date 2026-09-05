@@ -181,8 +181,20 @@ internal class MarketDailySpecialManager
 
 	internal static int GetOfferPrice()
 	{
-		if (MarketDailySpecialItem.modData.TryGetValue(MarketSpecialPriceKey, out string priceString) && int.TryParse(priceString, out int price))
-			return price;
+		if (MarketDailySpecialItem.modData.TryGetValue(MarketSpecialPriceKey, out string priceString))
+		{
+			if (int.TryParse(priceString, out int explicitPrice))
+			{
+				// Allow 0 for deliberate giveaways and block negatives which would pay the player.
+				if (explicitPrice >= 0)
+					return explicitPrice;
+
+				Log.Warn($"Market special \"{MarketDailySpecialItem.QualifiedItemId}\" has a negative \"{MarketSpecialPriceKey}\" of {explicitPrice}g, which would pay the player. Charging 1g instead.");
+				return 1;
+			}
+
+			Log.Warn($"Market special \"{MarketDailySpecialItem.QualifiedItemId}\" has an unparseable \"{MarketSpecialPriceKey}\" value \"{priceString}\". Falling back to its derived price.");
+		}
 
 		int derived = Utility.getSellToStorePriceOfItem(MarketDailySpecialItem);
 
